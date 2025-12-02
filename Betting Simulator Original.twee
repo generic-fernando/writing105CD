@@ -1,0 +1,472 @@
+:: StoryTitle
+Betting Simulator
+
+
+:: StoryData
+{
+  "ifid": "8BBE5825-044E-4B68-8F4F-D7CEAC8B3519",
+  "format": "SugarCube",
+  "format-version": "2.37.3",
+  "start": "Bet Central",
+  "zoom": 1
+}
+
+
+:: Bet Central {"position":"200,0","size":"100,100"}
+<img src="https://github.com/generic-fernando/writing105CD/blob/main/BetCentral.jpg?raw=true" style="width: 100%; max-width: 500px; margin-top: 1em; margin-bottom: 1em;">
+
+[[Parlays ->Bet Central Parlays]]
+
+
+:: Bet Central Parlays {"position":"200,200","size":"100,100"}
+<img src="https://github.com/generic-fernando/writing105CD/blob/main/BetCentral.jpg?raw=true" style="width: 50%; max-width: 500px; margin-top: 1em; margin-bottom: 1em;">
+
+Your current wager is <strong>$<<print$bet>></strong>
+
+<<nobr>>
+<<if $bet > $cash>>
+	<<set $bet = 0>>
+<</if>>
+<<button "ENTER WAGER">>
+	<<set $enterFromParlay = true>>
+	<<goto "Enter Wager">>
+<</button>>
+<<set _currentGame = getOdds()>>
+
+<<teamWidget>>
+<<link _currentGame[4]>>
+    <<set $parlayLegs.push(_currentGame[2])>>
+    <<set $parlayProb.push(_currentGame[0])>>
+    <<goto "Bet Central Parlays">>
+<</link>>
+
+<<teamWidget>> 
+<<link _currentGame[5]>>
+    <<set $parlayLegs.push(_currentGame[3])>>
+    <<set $parlayProb.push(_currentGame[1])>>
+    <<goto "Bet Central Parlays">>
+<</link>>
+
+<</nobr>>
+<<link "Next game">>
+	<<goto "Bet Central Parlays">>
+ <</link>>
+ 
+ [[Place the bet]]
+
+
+:: Enter Wager {"position":"500,300","size":"100,100"}
+Please enter how much you want to bet below:
+<<textbox "$bet" "">>
+
+<<if $enterFromParlay == true>>
+<<button "Continue">> <<goto "Bet Central Parlays">> <</button>>
+<<else>>
+<<button "Continue">> <<goto "Place the bet">> <</button>>
+<</if>>
+
+
+:: Line Chart {"position":"500,500","size":"100,100"}
+<<set $cdfOdds = cdf($parlayProb)>>
+<<set $xValues = graphValues($parlayProb)>>
+
+Your chance of winning was:
+<<set $overallProb = Math.round(1/multiply($parlayProb))>>
+1 in <<print $overallProb>>
+
+For every leg added to the parlay, this was your chance of winning:
+<canvas id="oddsChart" width="400" height="200"></canvas>
+
+<<script>>
+$(document).one(":passagedisplay", function () {
+    const ctx = document.getElementById("oddsChart").getContext("2d");
+    new Chart(ctx, {
+        type: "line",
+        data: {
+            labels: State.variables.xValues,
+            datasets: [{
+                label: "Cumulative Probability",
+                data: State.variables.cdfOdds,
+                borderColor: "blue",
+                fill: false
+            }]
+        },
+        options: {
+            responsive: true,
+            // --- Added Title ---
+            plugins: {
+                // Hides the default "Scores" legend to avoid confusion
+                legend: {
+                    display: false
+                }
+            },
+            // --- Added Axis Labels ---
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: "Leg Number"
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: "Probability of Winning"
+                    },
+                    // --- Explicitly start the axis at 0 ---
+                    min: 0,
+                    max: 1
+                }
+            }
+        }
+    });
+});
+<</script>>
+
+Do you have a gambling problem?
+Call <strong><<link "+1-800-GAMBLER" >><<script>>window.open('https://www.cdph.ca.gov/Programs/OPG/Pages/opg-landing.aspx')<</script>><</link>></strong>
+
+<<link "Try again">>
+    <<set $parlayLegs = []>>
+    <<set $parlayProb = []>>
+    <<goto "Bet Central">>
+<</link>>
+
+
+:: Load bearing passage {"position":"850,325","size":"100,100"}
+If you delete this passage the game will not work!
+
+
+:: Outcome {"position":"200,500","size":"100,100"}
+/* Check if a random number (which is between 0.0 and 1.0) is less than your $overallProb variable. */
+
+/* set the payout to be accurate to the wager and  then calculate the payout */
+<<set $payout = ($bet * multiply($parlayLegs)) - $bet>>
+
+<<if randomFloat(1.0) < $overallProb>>
+/* --- SUCCESS --- */
+You win <<print $payout.toFixed(2)>>!
+<<set $cash += $payout>>
+
+<<else>>
+<<set $cash -= $bet>>
+You failed...
+You have $cash dollars.
+<</if>>
+<<link "Try again" >>
+	<<set $parlayLegs = []>>
+	<<set $parlayProb = []>>
+    <<goto "Bet Central">>
+<</link>>
+
+[[See Parlay Odds ->Line Chart]]
+
+
+:: Place the bet {"position":"200,350","size":"100,100"}
+<<nobr>>
+Your potential payout is
+<<set $payout = multiply($parlayLegs)>>
+<strong> x<<print Math.round($payout)>>! | $<<print ($payout*$bet).toFixed(2)>></strong>
+<</nobr>>
+<<button "ENTER WAGER">>
+	<<set $enterFromParlay = false>>
+	<<goto "Enter Wager">>
+<</button>>
+
+[[Add More Legs ->Bet Central Parlays]]
+
+<<link "Clear my Parlay">>
+	<<set $parlayLegs = []>>
+	<<set $parlayProb = []>>
+	<<goto "Bet Central">>
+<</link>>
+<<if $bet == 0>>
+Please enter a wager!
+<<else>>
+[[Hit it!->Outcome]]
+<</if>>
+
+
+:: StoryCaption {"position":"700,0","size":"100,100"}
+<<set $currentOdds = multiply($parlayProb)>>
+
+<strong>Here ar Bet Central, we don't hide anything. </strong>
+
+Money: $cash
+Current bet: $bet
+Current probability of winning: $currentOdds
+
+<strong>YOUR hub for winning </strong>
+
+
+
+:: StoryInit {"position":"0,0","size":"100,100"}
+\:: StoryInit
+//sets the players starting cash to 1,000
+<<set $cash = 1000>>
+<<set $goal = 1500>>
+<<set $visits = 0>>
+<<set $enterFromParlay = false>>
+//creating empty arrays to hold parlay information, and creating a temporary
+//multiplier of 1 for cumulative probability
+
+<<set $parlayLegs = []>>
+<<set $parlayProb = []>>
+<<set $tempMult = 1>>
+//create the wager that will be used with the multiplier to find the payout
+<<set $bet = 0>>
+
+<<set $cities to ['New York', 'Los Angeles', 'Chicago', 'Houston', 'Phoenix', 'Philadelphia', 'Miami', 'Oklahoma City', 'Seattle', 'Denver', 'Cleveland', 'Las Vegas', 'New Jersey', 'Buffalo', 'Cincinnati', 'Baltimore', 'Indianapolis', 'Jacksonville', 'Dallas', 'Kansas City', 'Washington', 'Green Bay', 'Detroit', 'San Fransisco']>>
+
+//random goes from 0-23
+
+<<set $animals to [' Lions', ' Eagles', ' Bears', ' Stallions', ' Honey Badgers', ' Foxes', ' Wolves', ' Jaguars', ' Bobcats', ' Roadrunners', ' Falcons', ' Bulls', ' Dolphins', ' Penguins', ' Orcas', ' Cobras', ' Bears', ' Dragons', ' Crocodiles', ' Pitbulls', ' Panthers', ' Bills', ' Llamas', ' Ravens']>>
+
+//both arrays for cities and animals have 24 items at the moment.
+//initialized teams for betting
+<<set $team1 to $cities[random(0, 23)] + $animals[random(0, 23)]>>
+<<set $team2 to $cities[random(0, 23)] + $animals[random(0, 23)]>>
+//twine function that will reroll for teams, might need to rewrite as a js function
+<<widget "teamWidget">>
+	<<set $teamEx to $cities[random(0, 23)] + $animals[random(0, 23)]>>
+    <<print $teamEx>>
+<</widget>>
+
+<<script>>
+window.getOdds = function() {
+    // --- Define the bookmaker's hold ---
+    // For example, 0.04 represents a 4% hold.
+    // A 50/50 even match will become -110 / -110 with a ~4.5% hold.
+    // A 4% hold will result in odds like -108 / -108.
+    const holdPercentage = 0.04; // 4% hold
+    const halfHold = holdPercentage / 2;
+
+    // --- Generate "fair" probabilities ---
+    // Create random weights for team 1 and team 2
+    let a = Math.floor((Math.random() + 0.01) * 100);
+    let b = Math.floor((Math.random() + 0.01) * 100);
+
+    // Calculate the total weight
+    let sum = a + b;
+
+    // Calculate the "fair" probabilities for each team
+    // (These sum to 1.0)
+    let fair_win_prob = a / sum;
+    let fair_loss_prob = b / sum;
+
+    // --- Apply the "vig" to create implied probabilities ---
+    // We add half the hold to each side.
+    // The new "implied" probabilities will sum to 1.0 + holdPercentage
+    let implied_win_prob = fair_win_prob + halfHold;
+    let implied_loss_prob = fair_loss_prob + halfHold;
+
+    // --- Convert implied probabilities to Decimal Odds ---
+    // The decimal odds are simply 1 / (implied probability)
+    let juiced_dec_win = Math.floor(1 / implied_win_prob * 100) / 100;
+    let juiced_dec_loss = Math.floor(1 / implied_loss_prob * 100) / 100;
+
+    // --- Convert implied probabilities to American Odds ---
+    let americanOdds = [];
+    let team1, team2;
+
+    // Calculate odds for Team 1 based on its implied probability
+    if (implied_win_prob <= 0.5) {
+        // Underdog (positive odds)
+        team1 = '+' + Math.round((100 / implied_win_prob) - 100);
+    } else {
+        // Favorite (negative odds)
+        team1 = Math.round(-100 * (implied_win_prob / (1 - implied_win_prob)));
+    }
+    americanOdds.push(team1);
+
+    // Calculate odds for Team 2 based on its implied probability
+    if (implied_loss_prob <= 0.5) {
+        // Underdog (positive odds)
+        team2 = '+' + Math.round((100 / implied_loss_prob) - 100);
+    } else {
+        // Favorite (negative odds)
+        team2 = Math.round(-100 * (implied_loss_prob / (1 - implied_loss_prob)));
+    }
+    americanOdds.push(team2);
+
+    // Return the fair probabilities and the "juiced" odds
+    let Arr = [
+        fair_win_prob,
+        fair_loss_prob,
+        juiced_dec_win,
+        juiced_dec_loss,
+        americanOdds[0],
+        americanOdds[1]
+    ];
+
+    return Arr;
+}
+
+window.multiply = function (multArray){
+	var tempMult = 1;
+	for (let i = 0; i < multArray.length; i++){
+    	tempMult = tempMult * multArray[i];
+    }
+    return tempMult;
+}
+window.cdf = function (multArray){
+	var tempMult = 1;
+    var temporaryArray = [];
+	for (let i = 0; i < multArray.length; i++){
+    	tempMult = tempMult * multArray[i];
+        temporaryArray.push(tempMult);
+    }
+    return temporaryArray;
+}
+
+window.graphValues = function(multArray){
+	var intArray = [];
+	for(let i = 0; i <multArray.length;i++){
+    	intArray.push(i+1);
+    }
+    return intArray;
+}
+
+<</script>>
+
+
+:: StoryScript [script]
+setup.loadChartJS = function() {
+    if (!window.Chart) {
+        const script = document.createElement("script");
+        script.src = "https://cdn.jsdelivr.net/npm/chart.js";
+        document.head.appendChild(script);
+    }
+};
+setup.loadChartJS();
+
+:: StoryStylesheet [stylesheet]
+/*
+  Twine SugarCube Stylesheet
+  Add this code to your story's "Stylesheet" passage.
+  (In Twine, edit your story, click the story title,
+  and select "Edit Story Stylesheet").
+*/
+
+/*
+ * 1. Set a light gray background for the whole page
+ * so the white passage background stands out.
+ */
+body {
+  background-color: #f0f0f0; /* A light gray background */
+}
+
+/*
+ * 2. Target the main story container to center the passage.
+ * We use flexbox to center the .passage vertically and horizontally.
+ * This makes it look clean and focused.
+ */
+#story {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh; /* Ensure it fills at least the full screen height */
+  padding: 1em; /* Add some padding, which helps on mobile */
+  box-sizing: border-box;
+}
+
+/*
+ * 3. Style the passage itself.
+ * This is where we set the white background and center the text.
+ */
+.passage {
+  background-color: white;
+  color: #000; /* Set normal passage text to black */
+  text-align: center;      /* Center the text inside the passage */
+  padding: 2.5em;          /* Add breathing room inside the white box */
+  border-radius: 12px;     /* Optional: adds nice rounded corners */
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08); /* Optional: a subtle shadow */
+  max-width: 640px;        /* Set a max width for readability on large screens */
+  width: 100%;             /* Ensure it's responsive on mobile */
+  box-sizing: border-box;  /* Include padding in the width calculation */
+}
+
+/*
+ * 4. Style all links within the passage as green buttons.
+ */
+.passage a {
+  display: inline-block;     /* Allows padding and margin */
+  background-color: #000080; /* A nice shade of green */
+  color: white !important;   /* White text (use !important to override defaults) */
+  font-weight: bold;         /* Bold text, as requested */
+  text-decoration: none;     /* Remove the default underline */
+  padding: 12px 20px;        /* Vertical and horizontal padding */
+  margin: 8px 5px;           /* Add space around the buttons so they don't touch */
+  border-radius: 8px;        /* Rounded corners for the button */
+  transition: background-color 0.3s ease, transform 0.1s ease; /* Smooth hover effect */
+  cursor: pointer;           /* Ensure it looks clickable */
+}
+
+/*
+ * 5. Add a hover and active (click) effect to the buttons
+ * for better user feedback.
+ */
+.passage a:hover {
+  background-color: #000070; /* A slightly darker green on hover */
+  color: white !important;   /* Ensure text stays white */
+  text-decoration: none;
+  transform: translateY(-2px); /* Slight lift on hover */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Add shadow on hover */
+}
+
+.passage a:active {
+  transform: translateY(1px); /* Slight press-down on click */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Reduce shadow on click */
+}
+
+/*
+ * 6. Style macro buttons (like <<button>>) to match the
+ * link buttons, but in blue.
+ * We target .macro-button which is used by SugarCube.
+ */
+.passage .macro-button {
+  display: inline-block;     /* Allows padding and margin */
+  background-color: #007bff; /* A nice shade of blue */
+  color: white !important;   /* White text */
+  font-weight: bold;         /* Bold text */
+  text-decoration: none;     /* Remove any text decoration */
+  padding: 12px 20px;        /* Vertical and horizontal padding */
+  margin: 8px 5px;           /* Add space around the buttons */
+  border-radius: 8px;        /* Rounded corners for the button */
+  transition: background-color 0.3s ease, transform 0.1s ease; /* Smooth hover effect */
+  cursor: pointer;           /* Ensure it looks clickable */
+  
+  /* Reset button-specific defaults */
+  border: none;
+  font-family: inherit;      /* Use the passage's font */
+  font-size: inherit;        /* Use the passage's font size */
+}
+
+/*
+ * 7. Add hover and active effects for the blue macro buttons
+ */
+.passage .macro-button:hover {
+  background-color: #0069d9; /* A slightly darker blue on hover */
+  color: white !important;   /* Ensure text stays white */
+  text-decoration: none;
+  transform: translateY(-2px); /* Slight lift on hover */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Add shadow on hover */
+}
+
+.passage .macro-button:active {
+  transform: translateY(1px); /* Slight press-down on click */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Reduce shadow on click */
+}
+
+/* Hide the history navigation arrows (Back/Forward) */
+#ui-bar-history {
+  display: none !important;
+}
+
+/* Hide the "SFiles" menu item */
+#menu-item-saves {
+  display: none !important;
+}
+
+}
